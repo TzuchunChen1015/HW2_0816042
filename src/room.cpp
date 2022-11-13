@@ -42,3 +42,4 @@ bool PrivateRoom::IsStart(void) { return this->is_start_; }
 void PrivateRoom::JoinRoom(unsigned int fd) { this->FD_member_.insert(fd); }
 unsigned int PrivateRoom::GetManager(void) { return this->manager_; }
 unsigned int PrivateRoom::GetInvitationCode(void) { return this->invitation_code_; };
+bool PrivateRoom::MatchInvitationCode(unsigned int invitation_code) { return (this->invitation_code_ == invitation_code); }

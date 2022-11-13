@@ -26,5 +26,5 @@ public:
 	bool IsInRoom(void);
 	unsigned int GetRoomId(void);
 	unsigned int GetFD(void);
-	vector<unsigned int> invitation_room_id;
+	set<unsigned int> invitation_room_id;
 };

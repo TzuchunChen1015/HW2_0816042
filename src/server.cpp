@@ -35,6 +35,7 @@ void CreateRoom(unsigned int, vector<string>&);
 void JoinRoom(unsigned int, vector<string>&);
 void Invite(unsigned int, vector<string>&);
 void ListInvitation(unsigned int);
+void Accept(unsigned int, vector<string>&);
 // UDP functions
 void ProcessMessageUDP(unsigned int, string&, sockaddr_in);
 void SendMessageUDP(unsigned int, string, sockaddr_in);
@@ -162,7 +163,7 @@ void ProcessMessage(unsigned int fd, string& message) {
 	else if(v.front() == "login") {
 		Login(fd, v);
 	}
-	else if(v.front() == "logout") {
+	else if(message == "logout\n") {
 		Logout(fd);
 	}
 	else if(v.front() == "create") { // public and private
@@ -174,11 +175,11 @@ void ProcessMessage(unsigned int fd, string& message) {
 	else if(v.front() == "invite") {
 		Invite(fd, v);
 	}
-	else if(v.front() == "list") {
+	else if(message == "list invitations") {
 		ListInvitation(fd);
 	}
 	else if(v.front() == "accept") {
-
+		Accept(fd, v);
 	}
 	else {}
 }
@@ -299,7 +300,7 @@ void Invite(unsigned int fd, vector<string>& v) {
 		unsigned int invitee_fd = user_status[invitee_idx].GetFD();
 		unsigned int room_idx = PrivateRoom::room_idx_map_[user_status[FD_login_user[fd]].GetRoomId()];
 		SendMessage(invitee_fd, "You receive invitation from " + user_status[FD_login_user[fd]].GetName() + "<" + user_status[FD_login_user[fd]].GetEmail() + ">\n");
-		user_status[invitee_idx].invitation_room_id.push_back(user_status[FD_login_user[fd]].GetRoomId());
+		user_status[invitee_idx].invitation_room_id.insert(user_status[FD_login_user[fd]].GetRoomId());
 		SendMessage(fd, "You send invitation to " + user_status[invitee_idx].GetName() + "<" + user_status[invitee_idx].GetEmail() + ">\n");
 	}
 }
@@ -310,9 +311,10 @@ void ListInvitation(unsigned int fd) {
 		message = "No invitations\n";
 	}
 	else {
-		for(unsigned int i = 0; i < user_status[FD_login_user[fd]].invitation_room_id.size(); i++) {
-			unsigned int room_id = user_status[FD_login_user[fd]].invitation_room_id[i];
-			message += IntToString(i + 1) + ".";
+		int idx = 1;
+		for(set<unsigned int>::iterator it = user_status[FD_login_user[fd]].invitation_room_id.begin(); it != user_status[FD_login_user[fd]].invitation_room_id.end(); it++) {
+			unsigned int room_id = *it;
+			message += IntToString(idx++) + ".";
 			unsigned int room_idx = PrivateRoom::room_idx_map_[room_id];
 			unsigned int manager = private_room[room_idx].GetManager();
 			message += user_status[manager].GetName() + "<" + user_status[manager].GetEmail() + "> ";
@@ -320,6 +322,45 @@ void ListInvitation(unsigned int fd) {
 		}
 	}
 	SendMessage(fd, message);
+}
+
+void Accept(unsigned int fd, vector<string>& v) {
+	if(FD_login_user[fd] == -1) {
+		SendMessage(fd, "You are not logged in\n");
+	}
+	else if(user_status[FD_login_user[fd]].IsInRoom()) {
+		SendMessage(fd, "You are already in game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + ", please leave game room\n");
+	}
+	else {
+		bool invitation_exist = false;
+		unsigned int room_id, room_idx;
+		for(set<unsigned int>::iterator it = user_status[FD_login_user[fd]].invitation_room_id.begin(); it != user_status[FD_login_user[fd]].invitation_room_id.end(); it++) {
+			if(user_status[private_room[PrivateRoom::room_idx_map_[*it]].GetManager()].GetEmail() == v[1]) {
+				invitation_exist = true;
+				room_id = *it;
+				room_idx = PrivateRoom::room_idx_map_[*it];
+				break;
+			}
+		}
+		if(!invitation_exist) {
+			SendMessage(fd, "Invitation not exist\n");
+		}
+		else if(!private_room[room_idx].MatchInvitationCode(StringToInt(v[2]))) {
+			SendMessage(fd, "Your invitation code is incorrect\n");
+		}
+		else if(private_room[room_idx].IsStart()) {
+			SendMessage(fd, "Game has started, you can't join now\n");
+		}
+		else {
+			unsigned int idx = FD_login_user[fd];
+			user_status[idx].SetRoom(room_id);
+			for(set<unsigned int>::iterator it = private_room[room_idx].FD_member_.begin(); it != private_room[room_idx].FD_member_.end(); it++) {
+				SendMessage(*it, "Welcome, " + user_status[idx].GetName() + " to game!\n");
+			}
+			private_room[room_idx].JoinRoom(fd);
+			SendMessage(fd, "You join game room " + IntToString(room_id) + "\n");
+		}
+	}
 }
 
 void ProcessMessageUDP(unsigned int fd, string& message, sockaddr_in client_addr) {

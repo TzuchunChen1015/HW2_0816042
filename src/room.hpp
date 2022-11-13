@@ -39,4 +39,5 @@ public:
 	void JoinRoom(unsigned int fd);
 	unsigned int GetManager(void);
 	unsigned int GetInvitationCode(void);
+	bool MatchInvitationCode(unsigned int invitation_code);
 };
