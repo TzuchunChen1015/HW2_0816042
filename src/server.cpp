@@ -11,28 +11,33 @@
 #include <algorithm>
 
 #include "userstatus.hpp"
+#include "room.hpp"
 
 using namespace std;
 
 const int MXL = 1e3, MXFD = 1e3;
 char BUF[MXL + 1];
-uint32_t FD_login_user[MXFD + 1];
+unsigned int FD_login_user[MXFD + 1];
 vector<UserStatus> user_status;
+vector<PublicRoom> public_room;
+vector<PrivateRoom> private_room;
 
 void Init(void);
 void GetMessageVector(string&, vector<string>&);
-string IntToString(uint32_t);
-uint32_t StringToInt(string);
+string IntToString(unsigned int);
+unsigned int StringToInt(string);
 // TCP functions
-void ProcessMessage(uint32_t, string&);
-void SendMessage(uint32_t, string);
-void Login(uint32_t, vector<string>&);
-void Logout(uint32_t);
+void ProcessMessage(unsigned int, string&);
+void SendMessage(unsigned int, string);
+void Login(unsigned int, vector<string>&);
+void Logout(unsigned int);
+void CreateRoom(unsigned int, vector<string>&);
 // UDP functions
-void ProcessMessageUDP(uint32_t, string&, sockaddr_in);
-void SendMessageUDP(uint32_t, string, sockaddr_in);
-void Register(uint32_t, vector<string>&, sockaddr_in);
-void ListUsers(uint32_t, sockaddr_in);
+void ProcessMessageUDP(unsigned int, string&, sockaddr_in);
+void SendMessageUDP(unsigned int, string, sockaddr_in);
+void Register(unsigned int, vector<string>&, sockaddr_in);
+void ListRooms(unsigned int, sockaddr_in);
+void ListUsers(unsigned int, sockaddr_in);
 
 int main(int argc, char** argv) {
 	Init();
@@ -44,15 +49,15 @@ int main(int argc, char** argv) {
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	server_addr.sin_port = htons(atoi(PORT.c_str()));
 
-	uint32_t tcp_fd = socket(AF_INET, SOCK_STREAM, 0);
+	unsigned int tcp_fd = socket(AF_INET, SOCK_STREAM, 0);
 	bind(tcp_fd, (struct sockaddr*) &server_addr, sizeof(server_addr));
 	listen(tcp_fd, SOMAXCONN);
 
-	uint32_t udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
+	unsigned int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	bind(udp_fd, (struct sockaddr*) &server_addr, sizeof(server_addr));
 
 	fd_set read_set, all_set;
-	uint32_t max_fd = max(tcp_fd, udp_fd) + 1;
+	unsigned int max_fd = max(tcp_fd, udp_fd) + 1;
 	FD_ZERO(&all_set);
 	FD_SET(tcp_fd, &all_set);
 	FD_SET(udp_fd, &all_set);
@@ -62,7 +67,7 @@ int main(int argc, char** argv) {
 		select(max_fd, &read_set, NULL, NULL, NULL);
 		
 		if(FD_ISSET(tcp_fd, &read_set)) {
-			uint32_t new_fd = accept(tcp_fd, NULL, NULL);
+			unsigned int new_fd = accept(tcp_fd, NULL, NULL);
 			FD_SET(new_fd, &all_set);
 			max_fd = max(max_fd, new_fd + 1);
 			
@@ -70,7 +75,7 @@ int main(int argc, char** argv) {
 		
 		if(FD_ISSET(udp_fd, &read_set)) {
 			bzero(&client_addr, sizeof(client_addr));
-			uint32_t n_bytes;
+			unsigned int n_bytes;
 			socklen_t len = sizeof(client_addr);
 			
 			memset(BUF, 0, sizeof(BUF));
@@ -80,9 +85,9 @@ int main(int argc, char** argv) {
 			ProcessMessageUDP(udp_fd, message, client_addr);
 		}
 
-		for(uint32_t i = 5; i < max_fd; i++) {
+		for(unsigned int i = 5; i < max_fd; i++) {
 			if(FD_ISSET(i, &read_set)) {
-				uint32_t n_bytes;
+				unsigned int n_bytes;
 				memset(BUF, 0, sizeof(BUF));
 				n_bytes = recv(i, BUF, sizeof(BUF), 0);
 				if(!n_bytes) {
@@ -105,13 +110,13 @@ int main(int argc, char** argv) {
 }
 
 void Init(void) {
-	for(uint32_t i = 0; i < MXFD; i++) {
+	for(unsigned int i = 0; i < MXFD; i++) {
 		FD_login_user[i] = -1;
 	}
 	user_status.clear();
 	UserStatus::name_set_.clear();
 	UserStatus::email_set_.clear();
-	UserStatus::name_id_.clear();
+	UserStatus::name_idx_.clear();
 }
 
 void GetMessageVector(string& message, vector<string>& v) {
@@ -124,7 +129,7 @@ void GetMessageVector(string& message, vector<string>& v) {
 	}
 }
 
-string IntToString(uint32_t num) {
+string IntToString(unsigned int num) {
 	stringstream ss;
 	ss << num;
 	string str;
@@ -132,15 +137,15 @@ string IntToString(uint32_t num) {
 	return str;
 }
 
-uint32_t StringToInt(string str) {
+unsigned int StringToInt(string str) {
 	stringstream ss;
 	ss << str;
-	uint32_t num;
+	unsigned int num;
 	ss >> num;
 	return num;
 }
 
-void ProcessMessage(uint32_t fd, string& message) {
+void ProcessMessage(unsigned int fd, string& message) {
 	vector<string> v;
 	GetMessageVector(message, v);
 	if(v.empty()) {}
@@ -151,7 +156,7 @@ void ProcessMessage(uint32_t fd, string& message) {
 		Logout(fd);
 	}
 	else if(v.front() == "create") { // public and private
-
+		CreateRoom(fd, v);
 	}
 	else if(v.front() == "join") {
 
@@ -168,14 +173,14 @@ void ProcessMessage(uint32_t fd, string& message) {
 	else {}
 }
 
-void SendMessage(uint32_t fd, string message) {
+void SendMessage(unsigned int fd, string message) {
 	memset(BUF, 0, sizeof(BUF));
 	memcpy(BUF, message.c_str(), message.length());
 	send(fd, BUF, message.length(), 0);
 	cout << "send: " << message;
 }
 
-void Login(uint32_t fd, vector<string>& v) {
+void Login(unsigned int fd, vector<string>& v) {
 	string name = v[1], password = v[2];
 	if(UserStatus::name_set_.find(name) == UserStatus::name_set_.end()) {
 		SendMessage(fd, "Username not found\n");
@@ -183,28 +188,26 @@ void Login(uint32_t fd, vector<string>& v) {
 	else if(FD_login_user[fd] != -1) {
 		SendMessage(fd, "You already logged in as " + user_status[FD_login_user[fd]].GetName() + "\n");
 	}
-	else if(user_status[UserStatus::name_id_[name]].IsLogin()) {
+	else if(user_status[UserStatus::name_idx_[name]].IsLogin()) {
 		SendMessage(fd, "Someone already logged in as " + name + "\n");
 	}
-	else if(!user_status[UserStatus::name_id_[name]].MatchPassword(password)) {
+	else if(!user_status[UserStatus::name_idx_[name]].MatchPassword(password)) {
 		SendMessage(fd, "Wrong Password\n");
 	}
 	else {
-		uint32_t id = UserStatus::name_id_[name];
-		FD_login_user[fd] = id;
-		user_status[id].Login();
+		unsigned int idx = UserStatus::name_idx_[name];
+		FD_login_user[fd] = idx;
+		user_status[idx].Login();
 		SendMessage(fd, "Welcome, " + name + "\n");
 	}
 }
 
-void Logout(uint32_t fd) {
+void Logout(unsigned int fd) {
 	if(FD_login_user[fd] == -1) {
 		SendMessage(fd, "You are not logged in\n");
 	}
 	else if(user_status[FD_login_user[fd]].IsInRoom()) {
-		uint32_t room_id = user_status[FD_login_user[fd]].GetRoomId();
-		string str = IntToString(room_id);
-		SendMessage(fd, "You are already in game room " + str + ", please leave game room\n");
+		SendMessage(fd, "You are already in game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + ", please leave game room\n");
 	}
 	else {
 		user_status[FD_login_user[fd]].Logout();
@@ -213,7 +216,30 @@ void Logout(uint32_t fd) {
 	}
 }
 
-void ProcessMessageUDP(uint32_t fd, string& message, sockaddr_in client_addr) {
+void CreateRoom(unsigned int fd, vector<string>& v) {
+	if(FD_login_user[fd] == -1) {
+		SendMessage(fd, "You are not logged in\n");
+	}
+	else if(user_status[FD_login_user[fd]].IsInRoom()) {
+		SendMessage(fd, "You are already in game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + ", please leave game room\n");
+	}
+	else if(Room::room_id_set_.find(StringToInt(v[3])) != Room::room_id_set_.end()) {
+		SendMessage(fd, "Game room ID is used, choose another one\n");
+	}
+	else {
+		unsigned int room_id = StringToInt(v[3]);
+		if(v[1] == "public") {
+			public_room.push_back(PublicRoom(room_id, (unsigned int) public_room.size()));
+			SendMessage(fd, "You create public game room " + v[3] + "\n");
+		}
+		else if(v[1] == "private") {
+			private_room.push_back(PrivateRoom(room_id, (unsigned int) private_room.size()));
+			SendMessage(fd, "You create private game room " + v[3] + "\n");
+		}
+	}
+}
+
+void ProcessMessageUDP(unsigned int fd, string& message, sockaddr_in client_addr) {
 	cout << "receive: " << message;
 	vector<string> v;
 	GetMessageVector(message, v);
@@ -222,7 +248,7 @@ void ProcessMessageUDP(uint32_t fd, string& message, sockaddr_in client_addr) {
 		Register(fd, v, client_addr);
 	}
 	else if(message == "list rooms\n") {
-
+		ListRooms(fd, client_addr);
 	}
 	else if(message == "list users\n") {
 		ListUsers(fd, client_addr);
@@ -232,31 +258,69 @@ void ProcessMessageUDP(uint32_t fd, string& message, sockaddr_in client_addr) {
 	}
 }
 
-void SendMessageUDP(uint32_t fd, string message, sockaddr_in client_addr) {
+void SendMessageUDP(unsigned int fd, string message, sockaddr_in client_addr) {
 	memset(BUF, 0, sizeof(BUF));
 	memcpy(BUF, message.c_str(), message.length());
 	sendto(fd, BUF, message.length(), 0, (const struct sockaddr*) &client_addr, sizeof(client_addr));
 }
 
-void Register(uint32_t fd, vector<string>& v, sockaddr_in client_addr) {
+void Register(unsigned int fd, vector<string>& v, sockaddr_in client_addr) {
 	string name = v[1], email = v[2], password = v[3];
 	if(UserStatus::name_set_.find(name) != UserStatus::name_set_.end() || UserStatus::email_set_.find(email) != UserStatus::email_set_.end()) {
 		SendMessageUDP(fd, "Username or Email is already used\n", client_addr);
 	}
 	else {
-		user_status.push_back(UserStatus(name, email, password, (uint32_t) user_status.size()));
+		user_status.push_back(UserStatus(name, email, password, (unsigned int) user_status.size()));
 		SendMessageUDP(fd, "Register Successfully\n", client_addr);
 	}
 }
 
-void ListUsers(uint32_t fd, sockaddr_in client_addr) {
+void ListRooms(unsigned int fd, sockaddr_in client_addr) {
+	string message;
+	if(Room::room_id_set_.empty()) {
+		message = "No Rooms\n";
+	}
+	else {
+		set<unsigned int>::iterator it;
+		unsigned int idx = 1;
+		for(it = Room::room_id_set_.begin(); it != Room::room_id_set_.end(); it++, idx++) {
+			message += IntToString(idx) + ".";
+			unsigned int room_id = *it;
+			if(PublicRoom::room_id_set_.find(room_id) != PublicRoom::room_id_set_.end()) {
+				message += "(Public) ";
+				message += "Game Room " + IntToString(room_id) + " ";
+				unsigned room_idx = PublicRoom::room_idx_map_[room_id];
+				if(public_room[room_idx].IsStart()) {
+					message += "has started playing\n";
+				}
+				else {
+					message += "is open for players\n";
+				}
+			}
+			else if(PrivateRoom::room_id_set_.find(room_id) != PrivateRoom::room_id_set_.end()) {
+				message += "(Private) ";
+				message += "Game Room " + IntToString(room_id) + " ";
+				unsigned room_idx = PrivateRoom::room_idx_map_[room_id];
+				if(private_room[room_idx].IsStart()) {
+					message += "has started playing\n";
+				}
+				else {
+					message += "is open for players\n";
+				}
+			}
+		}
+	}
+	SendMessageUDP(fd, message, client_addr);
+}
+
+void ListUsers(unsigned int fd, sockaddr_in client_addr) {
 	string message;
 	if(user_status.empty()) {
 		message = "No Users\n";
 	}
 	else {
 		vector<string> v;
-		for(uint32_t i = 0; i < user_status.size(); i++) {
+		for(unsigned int i = 0; i < user_status.size(); i++) {
 			string str;
 			str += user_status[i].GetName();
 			str += "<" + user_status[i].GetEmail() + "> ";
@@ -269,7 +333,7 @@ void ListUsers(uint32_t fd, sockaddr_in client_addr) {
 			v.push_back(str);
 		}
 		sort(v.begin(), v.end());
-		for(uint32_t i = 0; i < v.size(); i++) {
+		for(unsigned int i = 0; i < v.size(); i++) {
 			message += IntToString(i + 1) + ".\n";
 			message += v[i];
 		}
