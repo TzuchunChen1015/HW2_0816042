@@ -32,6 +32,7 @@ void SendMessage(unsigned int, string);
 void Login(unsigned int, vector<string>&);
 void Logout(unsigned int);
 void CreateRoom(unsigned int, vector<string>&);
+void JoinRoom(unsigned int, vector<string>&);
 // UDP functions
 void ProcessMessageUDP(unsigned int, string&, sockaddr_in);
 void SendMessageUDP(unsigned int, string, sockaddr_in);
@@ -159,7 +160,7 @@ void ProcessMessage(unsigned int fd, string& message) {
 		CreateRoom(fd, v);
 	}
 	else if(v.front() == "join") {
-
+		JoinRoom(fd, v);
 	}
 	else if(v.front() == "invite") {
 
@@ -236,6 +237,34 @@ void CreateRoom(unsigned int fd, vector<string>& v) {
 			private_room.push_back(PrivateRoom(room_id, (unsigned int) private_room.size()));
 			SendMessage(fd, "You create private game room " + v[3] + "\n");
 		}
+	}
+}
+
+void JoinRoom(unsigned int fd, vector<string>& v) {
+	if(FD_login_user[fd] == -1) {
+		SendMessage(fd, "You are not logged in\n");
+	}
+	else if(user_status[FD_login_user[fd]].IsInRoom()) {
+		SendMessage(fd, "You are already in game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + ", please leave game room\n");
+	}
+	else if(Room::room_id_set_.find(StringToInt(v[2])) == Room::room_id_set_.end()) {
+		SendMessage(fd, "Game room " + v[2] + " is not exist\n");
+	}
+	else if(PrivateRoom::room_id_set_.find(StringToInt(v[2])) != PrivateRoom::room_id_set_.end()) {
+		SendMessage(fd, "Game room is private, please join game by invitation code\n");
+	}
+	else if(public_room[PublicRoom::room_idx_map_[StringToInt(v[2])]].IsStart()) {
+		SendMessage(fd, "Game started, you can't join now\n");
+	}
+	else {
+		unsigned int idx = FD_login_user[fd];
+		unsigned int room_idx = PublicRoom::room_idx_map_[StringToInt(v[2])];
+		user_status[idx].SetRoom(StringToInt(v[2]));
+		for(set<unsigned int>::iterator it = public_room[room_idx].FD_member_.begin(); it != public_room[room_idx].FD_member_.end(); it++) {
+			SendMessage(*it, "Welcome, " + user_status[idx].GetName() + " to game!\n");
+		}
+		public_room[room_idx].JoinRoom(fd);
+		SendMessage(fd, "You join game room " + v[2] + "\n");
 	}
 }
 

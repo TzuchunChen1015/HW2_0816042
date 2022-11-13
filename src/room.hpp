@@ -19,6 +19,8 @@ public:
 
 	PublicRoom(unsigned int room_id, unsigned int room_idx);
 	bool IsStart(void);
+	set<unsigned int> FD_member_; // store file descriptor;
+	void JoinRoom(unsigned int fd);
 };
 
 class PrivateRoom {
@@ -31,5 +33,6 @@ public:
 	static map<unsigned int, unsigned int> room_idx_map_;
 
 	PrivateRoom(unsigned int room_id, unsigned int room_idx);
+	set<unsigned int> FD_member_; // store file descriptor;
 	bool IsStart(void);
 };
