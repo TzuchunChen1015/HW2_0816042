@@ -595,7 +595,7 @@ void Guess(unsigned int fd, vector<string>& v) {
 						public_room[room_idx].ResetGame();
 					}
 					else {
-						message += "'" + result "'\n";
+						message += "'" + result + "'\n";
 						public_room[room_idx].NextRound();
 						if(public_room[room_idx].EndTheGame()) {
 							message += "Game ends, no one wins\n";
@@ -637,7 +637,7 @@ void Guess(unsigned int fd, vector<string>& v) {
 						private_room[room_idx].ResetGame();
 					}
 					else {
-						message += "'" + result "'\n";
+						message += "'" + result + "'\n";
 						private_room[room_idx].NextRound();
 						if(private_room[room_idx].EndTheGame()) {
 							message += "Game ends, no one wins\n";
