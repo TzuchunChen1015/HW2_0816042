@@ -216,7 +216,7 @@ void SendMessage(unsigned int fd, string message) {
 void Login(unsigned int fd, vector<string>& v) {
 	string name = v[1], password = v[2];
 	if(UserStatus::name_set_.find(name) == UserStatus::name_set_.end()) {
-		SendMessage(fd, "Username not found\n");
+		SendMessage(fd, "Username does not exist\n");
 	}
 	else if(FD_login_user[fd] != -1) {
 		SendMessage(fd, "You already logged in as " + user_status[FD_login_user[fd]].GetName() + "\n");
@@ -225,7 +225,7 @@ void Login(unsigned int fd, vector<string>& v) {
 		SendMessage(fd, "Someone already logged in as " + name + "\n");
 	}
 	else if(!user_status[UserStatus::name_idx_[name]].MatchPassword(password)) {
-		SendMessage(fd, "Wrong Password\n");
+		SendMessage(fd, "Wrong password\n");
 	}
 	else {
 		unsigned int idx = UserStatus::name_idx_[name];
@@ -330,7 +330,7 @@ void Invite(unsigned int fd, vector<string>& v) {
 void ListInvitation(unsigned int fd) {
 	string message = "List invitations\n";
 	if(user_status[FD_login_user[fd]].invitation_room_id.empty()) {
-		message += "No invitations\n";
+		message += "No Invitations\n";
 	}
 	else {
 		int idx = 1;
