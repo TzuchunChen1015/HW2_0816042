@@ -27,10 +27,7 @@ void UserStatus::Login(unsigned int fd) {
 	this->fd_ = fd;
 	this->is_login_ = true;
 }
-void UserStatus::Logout(void) {
-	this->is_login_ = false;
-	this->invitation_room_id.clear();
-}
+void UserStatus::Logout(void) { this->is_login_ = false; }
 bool UserStatus::IsLogin(void) { return this->is_login_; }
 void UserStatus::SetRoom(unsigned int room_id) {
 	this->room_id_ = room_id;
