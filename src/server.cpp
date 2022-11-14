@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <time.h>
 #include <unistd.h>
+#include <string>
 
 #include "userstatus.hpp"
 #include "room.hpp"
