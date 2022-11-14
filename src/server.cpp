@@ -108,8 +108,8 @@ int main(int argc, char** argv) {
 					FD_CLR(i, &all_set);
 					if(FD_login_user[i] != -1) {
 						Exit(i);
-						close(i);
 					}
+					close(i);
 				}
 				else {
 					BUF[n_bytes] = '\0';
