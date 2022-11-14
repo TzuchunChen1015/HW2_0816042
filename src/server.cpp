@@ -500,7 +500,10 @@ void StartGame(unsigned int fd, vector<string>& v) {
 					question = v[3];
 				}
 				public_room[room_idx].StartGame(round, question);
-				SendMessage(fd, "Game start! Current player is " + user_status[FD_login_user[public_room[room_idx].FD_member_.front()]].GetName() + "\n");
+				for(unsigned int i = 0; i < public_room[room_idx].FD_member_.size(); i++) {
+					unsigned int now = public_room[room_idx].FD_member_[i];
+					SendMessage(now, "Game start! Current player is " + user_status[FD_login_user[public_room[room_idx].FD_member_.front()]].GetName() + "\n");
+				}
 			}
 		}
 		else {
