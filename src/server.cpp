@@ -330,13 +330,13 @@ void Invite(unsigned int fd, vector<string>& v) {
 void ListInvitation(unsigned int fd) {
 	string message = "List invitations\n";
 	if(user_status[FD_login_user[fd]].invitation_room_id.empty()) {
-		message = "No invitations\n";
+		message += "No invitations\n";
 	}
 	else {
 		int idx = 1;
 		for(set<unsigned int>::iterator it = user_status[FD_login_user[fd]].invitation_room_id.begin(); it != user_status[FD_login_user[fd]].invitation_room_id.end(); it++) {
 			unsigned int room_id = *it;
-			message += IntToString(idx++) + ".";
+			message += IntToString(idx++) + ". ";
 			unsigned int room_idx = PrivateRoom::room_idx_map_[room_id];
 			unsigned int manager = private_room[room_idx].GetManager();
 			message += user_status[manager].GetName() + "<" + user_status[manager].GetEmail() + "> ";
@@ -718,13 +718,13 @@ void Register(unsigned int fd, vector<string>& v, sockaddr_in client_addr) {
 void ListRooms(unsigned int fd, sockaddr_in client_addr) {
 	string message = "List Game Rooms\n";
 	if(Room::room_id_set_.empty()) {
-		message = "No Rooms\n";
+		message += "No Rooms\n";
 	}
 	else {
 		set<unsigned int>::iterator it;
 		unsigned int idx = 1;
 		for(it = Room::room_id_set_.begin(); it != Room::room_id_set_.end(); it++, idx++) {
-			message += IntToString(idx) + ".";
+			message += IntToString(idx) + ". ";
 			unsigned int room_id = *it;
 			if(PublicRoom::room_id_set_.find(room_id) != PublicRoom::room_id_set_.end()) {
 				message += "(Public) ";
@@ -756,7 +756,7 @@ void ListRooms(unsigned int fd, sockaddr_in client_addr) {
 void ListUsers(unsigned int fd, sockaddr_in client_addr) {
 	string message = "List Users\n";
 	if(user_status.empty()) {
-		message = "No Users\n";
+		message += "No Users\n";
 	}
 	else {
 		vector<string> v;
