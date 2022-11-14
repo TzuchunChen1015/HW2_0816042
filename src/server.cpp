@@ -55,7 +55,7 @@ void ListUsers(unsigned int, sockaddr_in);
 
 int main(int argc, char** argv) {
 	Init();
-	const string PORT = "5000";
+	const string PORT = argv[1];
 	
 	struct sockaddr_in server_addr, client_addr;
 	bzero(&server_addr, sizeof(server_addr));
@@ -118,6 +118,8 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
+	close(tcp_fd);
+	close(udp_fd);
 	return 0;
 }
 
@@ -200,6 +202,7 @@ void ProcessMessage(unsigned int fd, string& message) {
 	}
 	else if(message == "exit\n") {
 		Exit(fd);
+		close(fd);
 	}
 }
 
@@ -405,7 +408,7 @@ void ProcessLeaveRoom(unsigned int fd, bool send_message) {
 		is_public = true;
 	}
 	else if(PrivateRoom::room_id_set_.find(room_id) != PrivateRoom::room_id_set_.end()) {
-		int room_idx = PrivateRoom::room_idx_map_[room_id];
+		room_idx = PrivateRoom::room_idx_map_[room_id];
 		is_public = false;
 	}
 	if(is_public) {
