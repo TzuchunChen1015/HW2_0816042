@@ -174,7 +174,7 @@ void ProcessMessage(unsigned int fd, string& message) {
 	else if(v.front() == "login") {
 		Login(fd, v);
 	}
-	else if(message == "logout\n") {
+	else if(v.front() == "logout") {
 		Logout(fd);
 	}
 	else if(v.front() == "create") { // public and private
@@ -186,13 +186,13 @@ void ProcessMessage(unsigned int fd, string& message) {
 	else if(v.front() == "invite") {
 		Invite(fd, v);
 	}
-	else if(message == "list invitations\n") {
+	else if(v[0] == "list" && v[1] == "invitations") {
 		ListInvitation(fd);
 	}
 	else if(v.front() == "accept") {
 		Accept(fd, v);
 	}
-	else if(message == "leave room\n") {
+	else if(v[0] == "leave" && v[1] == "room") {
 		LeaveRoom(fd);
 	}
 	else if(v.front() == "start") {
@@ -201,7 +201,7 @@ void ProcessMessage(unsigned int fd, string& message) {
 	else if(v.front() == "guess") {
 		Guess(fd, v);
 	}
-	else if(message == "exit\n") {
+	else if(v.front() == "exit") {
 		Exit(fd);
 		close(fd);
 	}
@@ -328,7 +328,7 @@ void Invite(unsigned int fd, vector<string>& v) {
 }
 
 void ListInvitation(unsigned int fd) {
-	string message;
+	string message = "List invitations\n";
 	if(user_status[FD_login_user[fd]].invitation_room_id.empty()) {
 		message = "No invitations\n";
 	}
@@ -687,10 +687,10 @@ void ProcessMessageUDP(unsigned int fd, string& message, sockaddr_in client_addr
 	else if(v.front() == "register") {
 		Register(fd, v, client_addr);
 	}
-	else if(message == "list rooms\n") {
+	else if(v[0] == "list" && v[1] == "rooms") {
 		ListRooms(fd, client_addr);
 	}
-	else if(message == "list users\n") {
+	else if(v[0] == "list" && v[1] == "users") {
 		ListUsers(fd, client_addr);
 	}
 	else {
@@ -716,7 +716,7 @@ void Register(unsigned int fd, vector<string>& v, sockaddr_in client_addr) {
 }
 
 void ListRooms(unsigned int fd, sockaddr_in client_addr) {
-	string message;
+	string message = "List Game Rooms\n";
 	if(Room::room_id_set_.empty()) {
 		message = "No Rooms\n";
 	}
@@ -754,7 +754,7 @@ void ListRooms(unsigned int fd, sockaddr_in client_addr) {
 }
 
 void ListUsers(unsigned int fd, sockaddr_in client_addr) {
-	string message;
+	string message = "List Users\n";
 	if(user_status.empty()) {
 		message = "No Users\n";
 	}
