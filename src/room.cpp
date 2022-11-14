@@ -19,9 +19,21 @@ PublicRoom::PublicRoom(unsigned int room_id, unsigned int room_idx, unsigned int
 	room_idx_map_[room_id] = room_idx;
 }
 bool PublicRoom::IsStart(void) { return this->is_start_; }
-void PublicRoom::JoinRoom(unsigned int fd) { this->FD_member_.insert(fd); }
+void PublicRoom::JoinRoom(unsigned int fd) { this->FD_member_.push_back(fd); }
+void PublicRoom::LeaveRoom(unsigned int fd) {
+	for(vector<unsigned int>::iterator it = this->FD_member_.begin(); it != this->FD_member_.end(); it++) {
+		if(*it == fd) {
+			this->FD_member_.erase(it);
+			break;
+		}
+	}
+}
 unsigned int PublicRoom::GetManager(void) { return this->manager_; }
-void PublicRoom::StartGame(void) { this->is_start_ = true; }
+void PublicRoom::StartGame(unsigned int round, string number) {
+	this->is_start_ = true;
+	this->round_ = round;
+	this->number_ = number;
+}
 void PublicRoom::ResetGame(void) { this->is_start_ = false; }
 
 // For Class PrivateRoom
@@ -41,9 +53,21 @@ PrivateRoom::PrivateRoom(unsigned int room_id, unsigned int room_idx, unsigned i
 	room_idx_map_[room_id] = room_idx;
 }
 bool PrivateRoom::IsStart(void) { return this->is_start_; }
-void PrivateRoom::JoinRoom(unsigned int fd) { this->FD_member_.insert(fd); }
+void PrivateRoom::JoinRoom(unsigned int fd) { this->FD_member_.push_back(fd); }
+void PrivateRoom::LeaveRoom(unsigned int fd) {
+	for(vector<unsigned int>::iterator it = this->FD_member_.begin(); it != this->FD_member_.end(); it++) {
+		if(*it == fd) {
+			this->FD_member_.erase(it);
+			break;
+		}
+	}
+}
 unsigned int PrivateRoom::GetManager(void) { return this->manager_; }
 unsigned int PrivateRoom::GetInvitationCode(void) { return this->invitation_code_; };
 bool PrivateRoom::MatchInvitationCode(unsigned int invitation_code) { return (this->invitation_code_ == invitation_code); }
-void PrivateRoom::StartGame(void) { this->is_start_ = true; }
+void PrivateRoom::StartGame(unsigned int round, string number) {
+	this->is_start_ = true;
+	this->round_ = round;
+	this->number_ = number;
+}
 void PrivateRoom::ResetGame(void) { this->is_start_ = false; }

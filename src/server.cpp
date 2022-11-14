@@ -9,6 +9,7 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <time.h>
 
 #include "userstatus.hpp"
 #include "room.hpp"
@@ -38,6 +39,9 @@ void ListInvitation(unsigned int);
 void Accept(unsigned int, vector<string>&);
 void LeaveRoom(unsigned int);
 void ProcessLeaveRoom(unsigned int, bool, unsigned int, unsigned int);
+void StartGame(unsigned int, vector<string>&);
+bool TestLegal(string&);
+string RandomGenNumber(void);
 // UDP functions
 void ProcessMessageUDP(unsigned int, string&, sockaddr_in);
 void SendMessageUDP(unsigned int, string, sockaddr_in);
@@ -76,7 +80,6 @@ int main(int argc, char** argv) {
 			unsigned int new_fd = accept(tcp_fd, NULL, NULL);
 			FD_SET(new_fd, &all_set);
 			max_fd = max(max_fd, new_fd + 1);
-			
 		}
 		
 		if(FD_ISSET(udp_fd, &read_set)) {
@@ -187,7 +190,7 @@ void ProcessMessage(unsigned int fd, string& message) {
 		LeaveRoom(fd);
 	}
 	else if(v.front() == "start") {
-		
+		StartGame(fd, v);
 	}
 	else if(v.front() == "guess") {
 
@@ -281,13 +284,13 @@ void JoinRoom(unsigned int fd, vector<string>& v) {
 		SendMessage(fd, "Game room is private, please join game by invitation code\n");
 	}
 	else if(public_room[PublicRoom::room_idx_map_[StringToInt(v[2])]].IsStart()) {
-		SendMessage(fd, "Game started, you can't join now\n");
+		SendMessage(fd, "Game has started, you can't join now\n");
 	}
 	else {
 		unsigned int idx = FD_login_user[fd];
 		unsigned int room_idx = PublicRoom::room_idx_map_[StringToInt(v[2])];
 		user_status[idx].SetRoom(StringToInt(v[2]));
-		for(set<unsigned int>::iterator it = public_room[room_idx].FD_member_.begin(); it != public_room[room_idx].FD_member_.end(); it++) {
+		for(vector<unsigned int>::iterator it = public_room[room_idx].FD_member_.begin(); it != public_room[room_idx].FD_member_.end(); it++) {
 			SendMessage(*it, "Welcome, " + user_status[idx].GetName() + " to game!\n");
 		}
 		public_room[room_idx].JoinRoom(fd);
@@ -368,7 +371,7 @@ void Accept(unsigned int fd, vector<string>& v) {
 		else {
 			unsigned int idx = FD_login_user[fd];
 			user_status[idx].SetRoom(room_id);
-			for(set<unsigned int>::iterator it = private_room[room_idx].FD_member_.begin(); it != private_room[room_idx].FD_member_.end(); it++) {
+			for(vector<unsigned int>::iterator it = private_room[room_idx].FD_member_.begin(); it != private_room[room_idx].FD_member_.end(); it++) {
 				SendMessage(*it, "Welcome, " + user_status[idx].GetName() + " to game!\n");
 			}
 			private_room[room_idx].JoinRoom(fd);
@@ -401,10 +404,10 @@ void LeaveRoom(unsigned int fd) {
 void ProcessLeaveRoom(unsigned int fd, bool is_public, unsigned int room_id, unsigned int room_idx) {
 	if(is_public) {
 		if(public_room[room_idx].GetManager() == FD_login_user[fd]) {
-			public_room[room_idx].FD_member_.erase(fd);
+			public_room[room_idx].LeaveRoom(fd);
 			SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + "\n");
 			user_status[FD_login_user[fd]].UnsetRoom();
-			for(set<unsigned int>::iterator it = public_room[room_idx].FD_member_.begin(); it != public_room[room_idx].FD_member_.end(); it++) {
+			for(vector<unsigned int>::iterator it = public_room[room_idx].FD_member_.begin(); it != public_room[room_idx].FD_member_.end(); it++) {
 				SendMessage(*it, "Game room manager leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + ", you are forced to leave too\n");
 				user_status[FD_login_user[*it]].UnsetRoom();
 			}
@@ -416,20 +419,20 @@ void ProcessLeaveRoom(unsigned int fd, bool is_public, unsigned int room_id, uns
 				message = ", game ends";
 				public_room[room_idx].ResetGame();
 			}
-			public_room[room_idx].FD_member_.erase(fd);
+			public_room[room_idx].LeaveRoom(fd);
 			SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + message + "\n");
 			user_status[FD_login_user[fd]].UnsetRoom();
-			for(set<unsigned int>::iterator it = public_room[room_idx].FD_member_.begin(); it != public_room[room_idx].FD_member_.end(); it++) {
+			for(vector<unsigned int>::iterator it = public_room[room_idx].FD_member_.begin(); it != public_room[room_idx].FD_member_.end(); it++) {
 				SendMessage(*it, user_status[FD_login_user[fd]].GetName() + " leave game room " + IntToString(room_id) + message + "\n");
 			}
 		}
 	}
 	else {
 		if(private_room[room_idx].GetManager() == FD_login_user[fd]) {
-			private_room[room_idx].FD_member_.erase(fd);
+			private_room[room_idx].LeaveRoom(fd);
 			SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + "\n");
 			user_status[FD_login_user[fd]].UnsetRoom();
-			for(set<unsigned int>::iterator it = private_room[room_idx].FD_member_.begin(); it != private_room[room_idx].FD_member_.end(); it++) {
+			for(vector<unsigned int>::iterator it = private_room[room_idx].FD_member_.begin(); it != private_room[room_idx].FD_member_.end(); it++) {
 				SendMessage(*it, "Game room manager leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + ", you are forced to leave too\n");
 				user_status[FD_login_user[*it]].UnsetRoom();
 			}
@@ -441,14 +444,93 @@ void ProcessLeaveRoom(unsigned int fd, bool is_public, unsigned int room_id, uns
 				message = ", game ends";
 				private_room[room_idx].ResetGame();
 			}
-			private_room[room_idx].FD_member_.erase(fd);
+			private_room[room_idx].LeaveRoom(fd);
 			SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + message + "\n");
 			user_status[FD_login_user[fd]].UnsetRoom();
-			for(set<unsigned int>::iterator it = private_room[room_idx].FD_member_.begin(); it != private_room[room_idx].FD_member_.end(); it++) {
+			for(vector<unsigned int>::iterator it = private_room[room_idx].FD_member_.begin(); it != private_room[room_idx].FD_member_.end(); it++) {
 				SendMessage(*it, user_status[FD_login_user[fd]].GetName() + " leave game room " + IntToString(room_id) + message + "\n");
 			}
 		}
 	}
+}
+
+void StartGame(unsigned int fd, vector<string>& v) {
+	if(FD_login_user[fd] == -1) {
+		SendMessage(fd, "You are not logged in\n");
+	}
+	else if(!user_status[FD_login_user[fd]].IsInRoom()) {
+		SendMessage(fd, "You did not join any game room\n");
+	}
+	else {
+		unsigned int idx = FD_login_user[fd];
+		unsigned int room_id = user_status[idx].GetRoomId();
+		if(PublicRoom::room_id_set_.find(room_id) != PublicRoom::room_id_set_.end()) {
+			unsigned int room_idx = PublicRoom::room_idx_map_[room_id];
+			if(public_room[room_idx].GetManager() != FD_login_user[fd]) {
+				SendMessage(fd, "You are not game room manager, you can't start game\n");
+			}
+			else if(public_room[room_idx].IsStart()) {
+				SendMessage(fd, "Game has started, you can't start again\n");
+			}
+			else if(v.size() == 4 && !TestLegal(v[3])) {
+				SendMessage(fd, "Please enter 4 digit number with leading zero\n");
+			}
+			else {
+				unsigned int round = StringToInt(v[2]);
+				string question = RandomGenNumber();
+				if(v.size() == 4) {
+					question = v[3];
+				}
+				public_room[room_idx].StartGame(round, question);
+				SendMessage(fd, "Game start! Current player is " + user_status[FD_login_user[public_room[room_idx].FD_member_.front()]].GetName() + "\n");
+			}
+		}
+		else {
+			unsigned int room_idx = PrivateRoom::room_idx_map_[room_id];
+			if(private_room[room_idx].GetManager() != FD_login_user[fd]) {
+				SendMessage(fd, "You are not game room manager, you can't start game\n");
+			}
+			else if(private_room[room_idx].IsStart()) {
+				SendMessage(fd, "Game has started, you can't start again\n");
+			}
+			else if(v.size() == 4 && !TestLegal(v[3])) {
+				SendMessage(fd, "Please enter 4 digit number with leading zero\n");
+			}
+			else {
+				unsigned int round = StringToInt(v[2]);
+				string question = RandomGenNumber();
+				if(v.size() == 4) {
+					question = v[3];
+				}
+				private_room[room_idx].StartGame(round, question);
+				SendMessage(fd, "Game start! Current player is " + user_status[FD_login_user[private_room[room_idx].FD_member_.front()]].GetName() + "\n");
+			}
+		}
+	}
+}
+
+bool TestLegal(string& s) {
+	if(s.length() != 4) {
+		return false;
+	}
+	else {
+		for(unsigned int i = 0; i < 4; i++) {
+			if(!isdigit(s[i])) {
+				return false;
+			}
+		}
+		return true;
+	}
+}
+
+string RandomGenNumber(void) {
+	srand(time(NULL));
+	string question;
+	for(int i = 0; i < 4; i++) {
+		int x = rand() % 10;
+		question += (char) (x + '0');
+	}
+	return question;
 }
 
 void ProcessMessageUDP(unsigned int fd, string& message, sockaddr_in client_addr) {
