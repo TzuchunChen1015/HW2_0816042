@@ -412,6 +412,7 @@ void ProcessLeaveRoom(unsigned int fd, bool send_message) {
 	}
 	if(is_public) {
 		if(public_room[room_idx].GetManager() == FD_login_user[fd]) {
+			Room::room_id_set_.erase(room_id);
 			public_room[room_idx].LeaveRoom(fd);
 			if(send_message) {
 				SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + "\n");
@@ -442,6 +443,7 @@ void ProcessLeaveRoom(unsigned int fd, bool send_message) {
 	}
 	else {
 		if(private_room[room_idx].GetManager() == FD_login_user[fd]) {
+			Room::room_id_set_.erase(room_id);
 			private_room[room_idx].LeaveRoom(fd);
 			if(send_message) {
 				SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + "\n");
@@ -584,20 +586,23 @@ void Guess(unsigned int fd, vector<string>& v) {
 				else {
 					string number = public_room[room_idx].GetNumber();
 					string result = GuessResult(number, v[1]);
-					SendMessage(fd, result);
+					string message = user_status[idx].GetName() + " guess '" + v[1] + "' and got ";
 					if(result == "4A0B") {
+						message += "Bingo!!! " + user_status[idx].GetName() + "wins the game, game ends\n";
 						for(unsigned int i = 0; i < public_room[room_idx].FD_member_.size(); i++) {
-							SendMessage(public_room[room_idx].FD_member_[i], user_status[FD_login_user[fd]].GetName() + " wins the game, game ends\n");
+							SendMessage(public_room[room_idx].FD_member_[i], message);
 						}
 						public_room[room_idx].ResetGame();
 					}
 					else {
+						message += "'" + result "'\n";
 						public_room[room_idx].NextRound();
 						if(public_room[room_idx].EndTheGame()) {
-							for(unsigned int i = 0; i < public_room[room_idx].FD_member_.size(); i++) {
-								SendMessage(public_room[room_idx].FD_member_[i], "Game ends, no one wins\n");
-							}
+							message += "Game ends, no one wins\n";
 							public_room[room_idx].ResetGame();
+						}
+						for(unsigned int i = 0; i < public_room[room_idx].FD_member_.size(); i++) {
+							SendMessage(public_room[room_idx].FD_member_[i], message);
 						}
 					}	
 				}
@@ -623,22 +628,25 @@ void Guess(unsigned int fd, vector<string>& v) {
 				else {
 					string number = private_room[room_idx].GetNumber();
 					string result = GuessResult(number, v[1]);
-					SendMessage(fd, result);
+					string message = user_status[idx].GetName() + " guess '" + v[1] + "' and got ";
 					if(result == "4A0B") {
+						message += "Bingo!!! " + user_status[idx].GetName() + "wins the game, game ends\n";
 						for(unsigned int i = 0; i < private_room[room_idx].FD_member_.size(); i++) {
-							SendMessage(public_room[room_idx].FD_member_[i], user_status[FD_login_user[fd]].GetName() + " wins the game, game ends\n");
+							SendMessage(private_room[room_idx].FD_member_[i], message);
 						}
 						private_room[room_idx].ResetGame();
 					}
 					else {
+						message += "'" + result "'\n";
 						private_room[room_idx].NextRound();
 						if(private_room[room_idx].EndTheGame()) {
-							for(unsigned int i = 0; i < private_room[room_idx].FD_member_.size(); i++) {
-								SendMessage(public_room[room_idx].FD_member_[i], "Game ends, no one wins\n");
-							}
+							message += "Game ends, no one wins\n";
 							private_room[room_idx].ResetGame();
 						}
-					}	
+						for(unsigned int i = 0; i < private_room[room_idx].FD_member_.size(); i++) {
+							SendMessage(private_room[room_idx].FD_member_[i], message);
+						}
+					}
 				}
 			}
 		}
