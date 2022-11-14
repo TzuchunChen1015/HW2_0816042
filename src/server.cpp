@@ -56,7 +56,7 @@ void ListUsers(unsigned int, sockaddr_in);
 
 int main(int argc, char** argv) {
 	Init();
-	const string PORT = argv[1];
+	const string PORT = "8888";
 	
 	struct sockaddr_in server_addr, client_addr;
 	bzero(&server_addr, sizeof(server_addr));
