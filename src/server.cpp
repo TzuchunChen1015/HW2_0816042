@@ -777,7 +777,7 @@ void ListUsers(unsigned int fd, sockaddr_in client_addr) {
 		}
 		sort(v.begin(), v.end());
 		for(unsigned int i = 0; i < v.size(); i++) {
-			message += IntToString(i + 1) + ".\n";
+			message += IntToString(i + 1) + ". ";
 			message += v[i];
 		}
 	}
