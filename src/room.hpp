@@ -22,6 +22,8 @@ public:
 	set<unsigned int> FD_member_; // store file descriptor;
 	void JoinRoom(unsigned int fd);
 	unsigned int GetManager(void);
+	void StartGame(void);
+	void ResetGame(void);
 };
 
 class PrivateRoom {
@@ -40,4 +42,6 @@ public:
 	unsigned int GetManager(void);
 	unsigned int GetInvitationCode(void);
 	bool MatchInvitationCode(unsigned int invitation_code);
+	void StartGame(void);
+	void ResetGame(void);
 };

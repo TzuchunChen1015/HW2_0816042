@@ -21,6 +21,8 @@ PublicRoom::PublicRoom(unsigned int room_id, unsigned int room_idx, unsigned int
 bool PublicRoom::IsStart(void) { return this->is_start_; }
 void PublicRoom::JoinRoom(unsigned int fd) { this->FD_member_.insert(fd); }
 unsigned int PublicRoom::GetManager(void) { return this->manager_; }
+void PublicRoom::StartGame(void) { this->is_start_ = true; }
+void PublicRoom::ResetGame(void) { this->is_start_ = false; }
 
 // For Class PrivateRoom
 set<unsigned int> PrivateRoom::room_id_set_;
@@ -43,3 +45,5 @@ void PrivateRoom::JoinRoom(unsigned int fd) { this->FD_member_.insert(fd); }
 unsigned int PrivateRoom::GetManager(void) { return this->manager_; }
 unsigned int PrivateRoom::GetInvitationCode(void) { return this->invitation_code_; };
 bool PrivateRoom::MatchInvitationCode(unsigned int invitation_code) { return (this->invitation_code_ == invitation_code); }
+void PrivateRoom::StartGame(void) { this->is_start_ = true; }
+void PrivateRoom::ResetGame(void) { this->is_start_ = false; }
