@@ -31,10 +31,20 @@ void PublicRoom::LeaveRoom(unsigned int fd) {
 unsigned int PublicRoom::GetManager(void) { return this->manager_; }
 void PublicRoom::StartGame(unsigned int round, string number) {
 	this->is_start_ = true;
-	this->round_ = round;
+	this->round_ = 0;
+	this->mx_round_ = round * (unsigned int) this->FD_member_.size();
 	this->number_ = number;
+	this->current_player_ = this->FD_member_.front();
 }
 void PublicRoom::ResetGame(void) { this->is_start_ = false; }
+bool PublicRoom::MatchCurrentPlayer(unsigned int fd) { return (this->current_player_ == fd); }
+unsigned int PublicRoom::GetCurrentPlayer(void) { return this->current_player_; }
+string PublicRoom::GetNumber(void) { return this->number_; }
+void PublicRoom::NextRound(void) {
+	this->round_++;
+	this->current_player_ = this->FD_member_[this->round_ % (unsigned int) (this->FD_member_.size())];
+}
+bool PublicRoom::EndTheGame(void) { return (this->round_ >= this->mx_round_); }
 
 // For Class PrivateRoom
 set<unsigned int> PrivateRoom::room_id_set_;
@@ -67,7 +77,17 @@ unsigned int PrivateRoom::GetInvitationCode(void) { return this->invitation_code
 bool PrivateRoom::MatchInvitationCode(unsigned int invitation_code) { return (this->invitation_code_ == invitation_code); }
 void PrivateRoom::StartGame(unsigned int round, string number) {
 	this->is_start_ = true;
-	this->round_ = round;
+	this->round_ = 0;
+	this->mx_round_ = this->round_ * (unsigned int) this->FD_member_.size();
 	this->number_ = number;
+	this->current_player_ = this->FD_member_.front();
 }
 void PrivateRoom::ResetGame(void) { this->is_start_ = false; }
+bool PrivateRoom::MatchCurrentPlayer(unsigned int fd) { return (this->current_player_ == fd); }
+unsigned int PrivateRoom::GetCurrentPlayer(void) { return this->current_player_; }
+string PrivateRoom::GetNumber(void) { return this->number_; }
+void PrivateRoom::NextRound(void) {
+	this->round_++;
+	this->current_player_ = this->FD_member_[this->round_ % (unsigned int) (this->FD_member_.size())];
+}
+bool PrivateRoom::EndTheGame(void) { return (this->round_ >= this->mx_round_); }

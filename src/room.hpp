@@ -11,7 +11,7 @@ public:
 
 class PublicRoom {
 private:
-	unsigned int room_id_, room_idx_, manager_, round_;
+	unsigned int room_id_, room_idx_, manager_, round_, mx_round_, current_player_;
 	bool is_start_;
 	string number_;
 
@@ -27,11 +27,16 @@ public:
 	unsigned int GetManager(void);
 	void StartGame(unsigned int round, string number);
 	void ResetGame(void);
+	bool MatchCurrentPlayer(unsigned int fd);
+	unsigned int GetCurrentPlayer(void);
+	string GetNumber(void);
+	void NextRound(void);
+	bool EndTheGame(void);
 };
 
 class PrivateRoom {
 private:
-	unsigned int room_id_, room_idx_, manager_, invitation_code_, round_;
+	unsigned int room_id_, room_idx_, manager_, invitation_code_, round_, mx_round_, current_player_;
 	bool is_start_;
 	string number_;
 
@@ -49,4 +54,9 @@ public:
 	bool MatchInvitationCode(unsigned int invitation_code);
 	void StartGame(unsigned int round, string number);
 	void ResetGame(void);
+	bool MatchCurrentPlayer(unsigned int fd);
+	unsigned int GetCurrentPlayer(void);
+	string GetNumber(void);
+	void NextRound(void);
+	bool EndTheGame(void);
 };
