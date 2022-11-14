@@ -211,7 +211,6 @@ void SendMessage(unsigned int fd, string message) {
 	memset(BUF, 0, sizeof(BUF));
 	memcpy(BUF, message.c_str(), message.length());
 	send(fd, BUF, message.length(), 0);
-	cout << "send: " << message;
 }
 
 void Login(unsigned int fd, vector<string>& v) {
@@ -329,7 +328,6 @@ void Invite(unsigned int fd, vector<string>& v) {
 }
 
 void ListInvitation(unsigned int fd) {
-	cout << "List Invitation\n";
 	string message;
 	if(user_status[FD_login_user[fd]].invitation_room_id.empty()) {
 		message = "No invitations\n";
@@ -683,7 +681,6 @@ void Exit(unsigned int fd) {
 }
 
 void ProcessMessageUDP(unsigned int fd, string& message, sockaddr_in client_addr) {
-	cout << "receive: " << message;
 	vector<string> v;
 	GetMessageVector(message, v);
 	if(v.empty()) {}
