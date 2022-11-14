@@ -588,7 +588,7 @@ void Guess(unsigned int fd, vector<string>& v) {
 					string result = GuessResult(number, v[1]);
 					string message = user_status[idx].GetName() + " guess '" + v[1] + "' and got ";
 					if(result == "4A0B") {
-						message += "Bingo!!! " + user_status[idx].GetName() + "wins the game, game ends\n";
+						message += "Bingo!!! " + user_status[idx].GetName() + " wins the game, game ends\n";
 						for(unsigned int i = 0; i < public_room[room_idx].FD_member_.size(); i++) {
 							SendMessage(public_room[room_idx].FD_member_[i], message);
 						}
@@ -630,7 +630,7 @@ void Guess(unsigned int fd, vector<string>& v) {
 					string result = GuessResult(number, v[1]);
 					string message = user_status[idx].GetName() + " guess '" + v[1] + "' and got ";
 					if(result == "4A0B") {
-						message += "Bingo!!! " + user_status[idx].GetName() + "wins the game, game ends\n";
+						message += "Bingo!!! " + user_status[idx].GetName() + " wins the game, game ends\n";
 						for(unsigned int i = 0; i < private_room[room_idx].FD_member_.size(); i++) {
 							SendMessage(private_room[room_idx].FD_member_[i], message);
 						}
