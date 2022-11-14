@@ -311,19 +311,33 @@ void Invite(unsigned int fd, vector<string>& v) {
 	else if(!user_status[FD_login_user[fd]].IsInRoom()) {
 		SendMessage(fd, "You did not join any game room\n");
 	}
-	else if(FD_login_user[fd] != private_room[PrivateRoom::room_idx_map_[user_status[FD_login_user[fd]].GetRoomId()]].GetManager()) {
-		SendMessage(fd, "You are not game room manager\n");
-	}
-	else if(!user_status[UserStatus::email_idx_[v[1]]].IsLogin()) {
-		SendMessage(fd, "Invitee not logged in\n");
-	}
 	else {
-		unsigned int invitee_idx = UserStatus::email_idx_[v[1]];
-		unsigned int invitee_fd = user_status[invitee_idx].GetFD();
-		unsigned int room_idx = PrivateRoom::room_idx_map_[user_status[FD_login_user[fd]].GetRoomId()];
-		SendMessage(invitee_fd, "You receive invitation from " + user_status[FD_login_user[fd]].GetName() + "<" + user_status[FD_login_user[fd]].GetEmail() + ">\n");
-		user_status[invitee_idx].invitation_room_id.insert(user_status[FD_login_user[fd]].GetRoomId());
-		SendMessage(fd, "You send invitation to " + user_status[invitee_idx].GetName() + "<" + user_status[invitee_idx].GetEmail() + ">\n");
+		unsigned int idx = FD_login_user[fd];
+		if(PublicRoom::room_id_set_.find(user_status[idx].GetRoomId()) != PublicRoom::room_id_set_.end()) {
+			unsigned int room_idx = PublicRoom::room_idx_map_[user_status[idx].GetRoomId()];
+			if(public_room[room_idx].GetManager() != idx) {
+				SendMessage(fd, "You are not game room manager\n");
+			}
+			else if(!user_status[UserStatus::email_idx_[v[1]]].IsLogin()) {
+				SendMessage(fd, "Invitee not logged in\n");
+			}
+		}
+		else {
+			unsigned int room_idx = PrivateRoom::room_idx_map_[user_status[idx].GetRoomId()];
+			if(private_room[room_idx].GetManager() != idx) {
+				SendMessage(fd, "You are not game room manager\n");
+			}
+			else if(!user_status[UserStatus::email_idx_[v[1]]].IsLogin()) {
+				SendMessage(fd, "Invitee not logged in\n");
+			}
+			else {
+				unsigned int invitee_idx = UserStatus::email_idx_[v[1]];
+				unsigned int invitee_fd = user_status[invitee_idx].GetFD();
+				SendMessage(invitee_fd, "You receive invitation from " + user_status[idx].GetName() + "<" + user_status[idx].GetEmail() + ">\n");
+				user_status[invitee_idx].invitation_room_id.insert(user_status[idx].GetRoomId());
+				SendMessage(fd, "You send invitation to " + user_status[invitee_idx].GetName() + "<" + user_status[invitee_idx].GetEmail() + ">\n");
+			}
+		}
 	}
 }
 
@@ -413,6 +427,7 @@ void ProcessLeaveRoom(unsigned int fd, bool send_message) {
 	if(is_public) {
 		if(public_room[room_idx].GetManager() == FD_login_user[fd]) {
 			Room::room_id_set_.erase(room_id);
+			PublicRoom::room_id_set_.erase(room_id);
 			public_room[room_idx].LeaveRoom(fd);
 			if(send_message) {
 				SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + "\n");
@@ -444,6 +459,7 @@ void ProcessLeaveRoom(unsigned int fd, bool send_message) {
 	else {
 		if(private_room[room_idx].GetManager() == FD_login_user[fd]) {
 			Room::room_id_set_.erase(room_id);
+			PrivateRoom::room_id_set_.erase(room_id);
 			private_room[room_idx].LeaveRoom(fd);
 			if(send_message) {
 				SendMessage(fd, "You leave game room " + IntToString(user_status[FD_login_user[fd]].GetRoomId()) + "\n");
