@@ -54,6 +54,8 @@ void Register(unsigned int, vector<string>&, sockaddr_in);
 void ListRooms(unsigned int, sockaddr_in);
 void ListUsers(unsigned int, sockaddr_in);
 
+fd_set read_set, all_set;
+
 int main(int argc, char** argv) {
 	Init();
 	const string PORT = "8888";
@@ -71,7 +73,6 @@ int main(int argc, char** argv) {
 	unsigned int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	bind(udp_fd, (struct sockaddr*) &server_addr, sizeof(server_addr));
 
-	fd_set read_set, all_set;
 	unsigned int max_fd = max(tcp_fd, udp_fd) + 1;
 	FD_ZERO(&all_set);
 	FD_SET(tcp_fd, &all_set);
@@ -204,6 +205,7 @@ void ProcessMessage(unsigned int fd, string& message) {
 	else if(v.front() == "exit") {
 		Exit(fd);
 		close(fd);
+		FD_CLR(fd, &all_set);
 	}
 }
 
