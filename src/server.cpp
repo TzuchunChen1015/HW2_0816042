@@ -443,6 +443,11 @@ void ProcessLeaveRoom(unsigned int fd, bool send_message) {
 			}
 			public_room[room_idx].FD_member_.clear();
 			public_room[room_idx].ResetGame();
+			for(unsigned int i = 0; i < user_status.size(); i++) {
+				if(user_status[i].invitation_room_id.find(room_id) != user_status[i].invitation_room_id.end()) {
+					user_status[i].invitation_room_id.erase(room_id);
+				}
+			}
 		}
 		else {
 			string message = "";
@@ -479,6 +484,11 @@ void ProcessLeaveRoom(unsigned int fd, bool send_message) {
 			}
 			private_room[room_idx].FD_member_.clear();
 			private_room[room_idx].ResetGame();
+			for(unsigned int i = 0; i < user_status.size(); i++) {
+				if(user_status[i].invitation_room_id.find(room_id) != user_status[i].invitation_room_id.end()) {
+					user_status[i].invitation_room_id.erase(room_id);
+				}
+			}
 		}
 		else {
 			string message = "";
