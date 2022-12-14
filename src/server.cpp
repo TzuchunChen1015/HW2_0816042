@@ -318,7 +318,7 @@ void Invite(unsigned int fd, vector<string>& v) {
 		if(PublicRoom::room_id_set_.find(user_status[idx].GetRoomId()) != PublicRoom::room_id_set_.end()) {
 			unsigned int room_idx = PublicRoom::room_idx_map_[user_status[idx].GetRoomId()];
 			if(public_room[room_idx].GetManager() != idx) {
-				SendMessage(fd, "You are not game room manager\n");
+				SendMessage(fd, "You are not private game room manager\n");
 			}
 			else if(!user_status[UserStatus::email_idx_[v[1]]].IsLogin()) {
 				SendMessage(fd, "Invitee not logged in\n");
